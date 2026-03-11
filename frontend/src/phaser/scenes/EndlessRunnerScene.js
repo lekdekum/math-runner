@@ -7,8 +7,9 @@ const PLAYER_Y = GAME_HEIGHT - 84;
 const PLAYER_RADIUS = 22;
 const OBSTACLE_SIZE = { width: 70, height: 70 };
 const BASE_SPEED = 280;
-const GATE_SPEED = 240;
+const GATE_SPEED = 60;
 const SPAWN_INTERVAL = 900;
+const FIRST_QUESTION_SCORE = 50;
 const QUESTION_INTERVAL = 100;
 const LANE_CHANGE_DURATION = 130;
 const SCORE_RATE = 10;
@@ -29,6 +30,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     this.scoreText = null;
     this.messageText = null;
     this.questionText = null;
+    this.questionBackdrop = null;
     this.startOverlay = null;
     this.startOverlayButton = null;
     this.startOverlayLabel = null;
@@ -188,6 +190,11 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     this.messageText.setDepth(20);
     this.messageText.setOrigin(0.5, 0);
 
+    this.questionBackdrop = this.add.graphics();
+    this.questionBackdrop.setDepth(18);
+    this.questionBackdrop.setVisible(false);
+    this.drawQuestionBackdrop();
+
     this.questionText = this.add.text(GAME_WIDTH / 2, 142, "", {
       align: "center",
       color: "#f0b35d",
@@ -197,6 +204,12 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     });
     this.questionText.setDepth(20);
     this.questionText.setOrigin(0.5, 0);
+  }
+
+  drawQuestionBackdrop() {
+    this.questionBackdrop.clear();
+    this.questionBackdrop.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.28, 0.28);
+    this.questionBackdrop.fillRect(70, 122, GAME_WIDTH - 140, 92);
   }
 
   createInput() {
@@ -254,10 +267,11 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     this.spawnTimer = 0;
     this.scrollOffset = 0;
     this.gameMode = "idle";
-    this.nextQuestionScore = QUESTION_INTERVAL;
+    this.nextQuestionScore = FIRST_QUESTION_SCORE;
     this.scoreText.setText("Score: 0");
     this.messageText.setText("Arrow keys or A/D to switch lanes");
     this.questionText.setText("");
+    this.questionBackdrop.setVisible(false);
     this.playerVisual.setPosition(this.lanePositions[this.currentLane], PLAYER_Y);
     this.player.body.reset(this.playerVisual.x, this.playerVisual.y);
 
@@ -382,6 +396,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     this.gameMode = "gameOver";
     this.messageText.setText("Game Over\nPress Space or Enter to restart");
     this.questionText.setText("");
+    this.questionBackdrop.setVisible(false);
     this.submitScore();
   }
 
@@ -432,6 +447,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
 
     const question = this.getNextQuestion();
     this.messageText.setText("Choose the correct answer gate");
+    this.questionBackdrop.setVisible(true);
     this.questionText.setText(question.question);
 
     const answers = Phaser.Utils.Array.Shuffle(
@@ -476,6 +492,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     this.gameMode = "running";
     this.messageText.setText("Correct! Keep running");
     this.questionText.setText("");
+    this.questionBackdrop.setVisible(false);
     this.clearGates();
   }
 

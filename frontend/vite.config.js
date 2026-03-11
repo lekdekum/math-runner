@@ -21,6 +21,10 @@ export default defineConfig({
       "/submit-score": {
         target: "http://localhost:7878",
         changeOrigin: true
+      },
+      "/rankings": {
+        target: "http://localhost:7878",
+        changeOrigin: true
       }
     }
   }

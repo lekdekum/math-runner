@@ -1,10 +1,60 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+function normalizeScores(payload) {
+  if (Array.isArray(payload?.scores)) {
+    return payload.scores;
+  }
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  return [];
+}
+
+function normalizeQuestions(payload) {
+  if (Array.isArray(payload?.payload?.questions)) {
+    return payload.payload.questions;
+  }
+
+  if (Array.isArray(payload?.questions)) {
+    return payload.questions;
+  }
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  return [];
+}
+
+function formatCreatedAt(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
 export default function AdminDetailsPage() {
   const { slug = "" } = useParams();
   const [payload, setPayload] = useState(null);
+  const [scores, setScores] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
+  const [rankingsErrorMessage, setRankingsErrorMessage] = useState("");
   const [isNotFound, setIsNotFound] = useState(false);
 
   useEffect(() => {
@@ -12,7 +62,9 @@ export default function AdminDetailsPage() {
 
     if (!normalizedSlug) {
       setPayload(null);
+      setScores([]);
       setErrorMessage("Missing question slug");
+      setRankingsErrorMessage("");
       setIsNotFound(false);
       return undefined;
     }
@@ -22,29 +74,43 @@ export default function AdminDetailsPage() {
     async function loadDetails() {
       try {
         setPayload(null);
+        setScores([]);
         setErrorMessage("");
+        setRankingsErrorMessage("");
         setIsNotFound(false);
 
-        const response = await fetch(`/questions/${encodeURIComponent(normalizedSlug)}`, {
-          signal: controller.signal
-        });
+        const [questionResponse, rankingsResponse] = await Promise.all([
+          fetch(`/questions/${encodeURIComponent(normalizedSlug)}`, {
+            signal: controller.signal
+          }),
+          fetch(`/rankings/${encodeURIComponent(normalizedSlug)}`, {
+            signal: controller.signal
+          })
+        ]);
 
-        if (response.status === 404) {
+        if (questionResponse.status === 404) {
           setIsNotFound(true);
           return;
         }
 
-        if (!response.ok) {
-          throw new Error(`Request failed with status ${response.status}`);
+        if (!questionResponse.ok) {
+          throw new Error(`Request failed with status ${questionResponse.status}`);
         }
 
-        setPayload(await response.json());
+        setPayload(await questionResponse.json());
+
+        if (rankingsResponse.ok) {
+          setScores(normalizeScores(await rankingsResponse.json()));
+        } else if (rankingsResponse.status !== 404) {
+          setRankingsErrorMessage(`Rankings request failed with status ${rankingsResponse.status}`);
+        }
       } catch (error) {
         if (error.name === "AbortError") {
           return;
         }
 
         setPayload(null);
+        setScores([]);
         setIsNotFound(false);
         setErrorMessage(error.message || "Failed to load question details");
       }
@@ -56,6 +122,8 @@ export default function AdminDetailsPage() {
       controller.abort();
     };
   }, [slug]);
+
+  const questions = normalizeQuestions(payload);
 
   return (
     <main className="page-shell">
@@ -76,8 +144,62 @@ export default function AdminDetailsPage() {
           <>
             <p className="eyebrow">Question Details</p>
             <h1>{slug}</h1>
-            <p>Raw JSON returned by the backend.</p>
-            <pre className="json-viewer">{JSON.stringify(payload, null, 2)}</pre>
+            <p>Questions and answers loaded for this slug.</p>
+
+            {questions.length > 0 ? (
+              <div className="rankings-table-wrapper">
+                <table className="rankings-table">
+                  <thead>
+                    <tr>
+                      <th>Question</th>
+                      <th>Answers</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {questions.map((entry, index) => (
+                      <tr key={`${entry.question}-${index}`}>
+                        <td>{entry.question}</td>
+                        <td>{Array.isArray(entry.answers) ? entry.answers.join(", ") : ""}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p>No questions were returned for this slug.</p>
+            )}
+
+            <p className="eyebrow">Rankings</p>
+            <p>Name, score, and created date in a copy-friendly format.</p>
+
+            {rankingsErrorMessage ? (
+              <p className="status-error">{rankingsErrorMessage}</p>
+            ) : scores.length > 0 ? (
+              <>
+                <div className="rankings-table-wrapper">
+                  <table className="rankings-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Score</th>
+                        <th>Created At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scores.map((entry) => (
+                        <tr key={entry.id ?? `${entry.name}-${entry.score}-${entry.created_at}`}>
+                          <td>{entry.name}</td>
+                          <td>{entry.score}</td>
+                          <td>{formatCreatedAt(entry.created_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <p>No rankings available for this slug yet.</p>
+            )}
           </>
         ) : (
           <>

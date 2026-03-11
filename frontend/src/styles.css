@@ -201,18 +201,31 @@ p {
   overflow-wrap: anywhere;
 }
 
-.json-viewer {
+.rankings-table-wrapper {
   width: 100%;
-  margin: 1.5rem 0;
-  padding: 1rem;
-  border-radius: 16px;
-  background: rgba(6, 11, 19, 0.9);
-  border: 1px solid rgba(244, 241, 234, 0.12);
-  color: #d7f4de;
+  overflow-x: auto;
+  margin: 1.5rem 0 1rem;
+}
+
+.rankings-table {
+  width: 100%;
+  border-collapse: collapse;
   text-align: left;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
+  color: #f4f1ea;
+}
+
+.rankings-table th,
+.rankings-table td {
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid rgba(244, 241, 234, 0.12);
+  white-space: nowrap;
+}
+
+.rankings-table th {
+  color: #f0b35d;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .phaser-root {
