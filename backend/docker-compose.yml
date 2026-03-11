@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: math-runner-postgres
+    environment:
+      POSTGRES_DB: math_runner
+      POSTGRES_USER: math_runner
+      POSTGRES_PASSWORD: math_runner
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U math_runner -d math_runner"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: math-runner-backend
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8080
+      DATABASE_URL: postgres://math_runner:math_runner@postgres:5432/math_runner
+      RUST_LOG: backend=debug,tower_http=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "7878:8080"
+
+volumes:
+  postgres_data:

@@ -1,0 +1,6 @@
+CREATE TABLE questions (
+    id UUID PRIMARY KEY,
+    slug VARCHAR NOT NULL UNIQUE,
+    payload JSONB NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
