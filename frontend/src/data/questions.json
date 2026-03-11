@@ -1,0 +1,20 @@
+{
+  "questions": [
+    {
+      "question": "How much is 2 + 2?",
+      "answers": ["4", "6", "8"]
+    },
+    {
+      "question": "What is the tenth prime number?",
+      "answers": ["29", "11", "31"]
+    },
+    {
+      "question": "How much is 9 x 3?",
+      "answers": ["27", "21", "36"]
+    },
+    {
+      "question": "What is 15 - 7?",
+      "answers": ["8", "6", "9"]
+    }
+  ]
+}
