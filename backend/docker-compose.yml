@@ -20,6 +20,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env.example
     container_name: math-runner-backend
     environment:
       APP_HOST: 0.0.0.0
