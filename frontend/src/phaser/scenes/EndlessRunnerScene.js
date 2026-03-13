@@ -74,7 +74,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
 
     const deltaSeconds = delta / 1000;
     this.score += deltaSeconds * SCORE_RATE;
-    this.scoreText.setText(`Score: ${Math.floor(this.score)}`);
+    this.scoreText.setText(`SCORE: ${Math.floor(this.score)}`);
 
     this.scrollTrack(deltaSeconds);
 
@@ -169,9 +169,9 @@ export default class EndlessRunnerScene extends Phaser.Scene {
   }
 
   createHud() {
-    this.scoreText = this.add.text(28, 22, "Score: 0", {
+    this.scoreText = this.add.text(28, 22, "SCORE: 0", {
       color: "#f4f1ea",
-      fontFamily: "Trebuchet MS, sans-serif",
+      fontFamily: '"Minecraft", "Trebuchet MS", sans-serif',
       fontSize: "24px"
     });
     this.scoreText.setDepth(20);
@@ -179,12 +179,13 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     this.messageText = this.add.text(
       GAME_WIDTH / 2,
       96,
-      "Arrow keys or A/D to switch lanes",
+      "ARROW KEYS OR A/D TO SWITCH LANES",
       {
         align: "center",
         color: "#d4deea",
-        fontFamily: "Trebuchet MS, sans-serif",
-        fontSize: "20px"
+        fontFamily: '"Minecraft", "Trebuchet MS", sans-serif',
+        fontSize: "20px",
+        wordWrap: { width: GAME_WIDTH - 180 }
       }
     );
     this.messageText.setDepth(20);
@@ -198,9 +199,9 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     this.questionText = this.add.text(GAME_WIDTH / 2, 142, "", {
       align: "center",
       color: "#f0b35d",
-      fontFamily: "Georgia, serif",
-      fontSize: "28px",
-      wordWrap: { width: GAME_WIDTH - 140 }
+      fontFamily: '"Minecraft", "Trebuchet MS", sans-serif',
+      fontSize: "26px",
+      wordWrap: { width: GAME_WIDTH - 180 }
     });
     this.questionText.setDepth(20);
     this.questionText.setOrigin(0.5, 0);
@@ -233,12 +234,13 @@ export default class EndlessRunnerScene extends Phaser.Scene {
       fontFamily: "Georgia, serif",
       fontSize: "34px"
     });
+    title.setShadow(0, 3, "#000000", 8, true, true);
     title.setOrigin(0.5);
 
-    this.startOverlayLabel = this.add.text(0, -12, "Press Start to begin", {
+    this.startOverlayLabel = this.add.text(0, -12, "PRESS START TO BEGIN", {
       align: "center",
       color: "#d4deea",
-      fontFamily: "Trebuchet MS, sans-serif",
+      fontFamily: '"Minecraft", "Trebuchet MS", sans-serif',
       fontSize: "20px"
     });
     this.startOverlayLabel.setOrigin(0.5);
@@ -248,11 +250,10 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     this.startOverlayButton.setInteractive({ useHandCursor: true });
     this.startOverlayButton.on("pointerdown", () => this.startRun());
 
-    const buttonText = this.add.text(0, 58, "Start Run", {
+    const buttonText = this.add.text(0, 58, "START RUN", {
       color: "#09111d",
-      fontFamily: "Trebuchet MS, sans-serif",
-      fontSize: "24px",
-      fontStyle: "bold"
+      fontFamily: '"Minecraft", "Trebuchet MS", sans-serif',
+      fontSize: "24px"
     });
     buttonText.setOrigin(0.5);
 
@@ -268,8 +269,8 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     this.scrollOffset = 0;
     this.gameMode = "idle";
     this.nextQuestionScore = FIRST_QUESTION_SCORE;
-    this.scoreText.setText("Score: 0");
-    this.messageText.setText("Arrow keys or A/D to switch lanes");
+    this.scoreText.setText("SCORE: 0");
+    this.messageText.setText("ARROW KEYS OR A/D TO SWITCH LANES");
     this.questionText.setText("");
     this.questionBackdrop.setVisible(false);
     this.playerVisual.setPosition(this.lanePositions[this.currentLane], PLAYER_Y);
@@ -394,7 +395,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
 
     this.isGameOver = true;
     this.gameMode = "gameOver";
-    this.messageText.setText("Game Over\nPress Space or Enter to restart");
+    this.messageText.setText("GAME OVER\nPRESS SPACE OR ENTER TO RESTART");
     this.questionText.setText("");
     this.questionBackdrop.setVisible(false);
     this.submitScore();
@@ -446,13 +447,13 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     this.clearGates();
 
     const question = this.getNextQuestion();
-    this.messageText.setText("Choose the correct answer gate");
+    this.messageText.setText("CHOOSE THE CORRECT ANSWER GATE");
     this.questionBackdrop.setVisible(true);
-    this.questionText.setText(question.question);
+    this.questionText.setText(String(question.question).toUpperCase());
 
     const answers = Phaser.Utils.Array.Shuffle(
       question.answers.map((answer, index) => ({
-        label: String(answer),
+        label: String(answer).toUpperCase(),
         isCorrect: index === 0
       }))
     );
@@ -470,8 +471,8 @@ export default class EndlessRunnerScene extends Phaser.Scene {
       const label = this.add.text(gate.x, gate.y, answer.label, {
         align: "center",
         color: "#f4f1ea",
-        fontFamily: "Trebuchet MS, sans-serif",
-        fontSize: "30px"
+        fontFamily: '"Minecraft", "Trebuchet MS", sans-serif',
+        fontSize: "28px"
       });
       label.setDepth(15);
       label.setOrigin(0.5);
@@ -490,7 +491,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
 
   finishQuestionRound() {
     this.gameMode = "running";
-    this.messageText.setText("Correct! Keep running");
+    this.messageText.setText("CORRECT! KEEP RUNNING");
     this.questionText.setText("");
     this.questionBackdrop.setVisible(false);
     this.clearGates();

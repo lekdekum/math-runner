@@ -10,10 +10,30 @@ export default function PhaserCanvas({ questionBank, slug, playerName }) {
       return undefined;
     }
 
-    const game = new Phaser.Game(createGameConfig(containerRef.current, questionBank, slug, playerName));
+    let game = null;
+    let isDisposed = false;
+
+    async function createGame() {
+      try {
+        await document.fonts.load('24px "Minecraft"');
+      } catch {
+        // Keep booting the game even if font loading is unsupported.
+      }
+
+      if (isDisposed || !containerRef.current) {
+        return;
+      }
+
+      game = new Phaser.Game(createGameConfig(containerRef.current, questionBank, slug, playerName));
+    }
+
+    createGame();
 
     return () => {
-      game.destroy(true);
+      isDisposed = true;
+      if (game) {
+        game.destroy(true);
+      }
     };
   }, [playerName, questionBank, slug]);
 
