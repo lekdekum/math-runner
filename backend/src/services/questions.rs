@@ -124,6 +124,15 @@ fn normalize_slug(slug: String) -> Result<String, AppError> {
         ));
     }
 
+    if !trimmed
+        .chars()
+        .all(|char| char.is_ascii_alphanumeric() || char == '-' || char == '_')
+    {
+        return Err(AppError::BadRequest(
+            "question slug must contain only letters, numbers, '-' or '_'".to_string(),
+        ));
+    }
+
     Ok(trimmed.to_string())
 }
 
@@ -304,6 +313,30 @@ mod tests {
     fn normalize_slug_trims_whitespace() {
         let slug = normalize_slug("  algebra-1  ".to_string()).unwrap();
         assert_eq!(slug, "algebra-1");
+    }
+
+    #[test]
+    fn normalize_slug_rejects_spaces() {
+        let error = normalize_slug("algebra 1".to_string()).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "question slug must contain only letters, numbers, '-' or '_'"
+        );
+    }
+
+    #[test]
+    fn normalize_slug_rejects_special_characters() {
+        let error = normalize_slug("algebra@1".to_string()).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "question slug must contain only letters, numbers, '-' or '_'"
+        );
+    }
+
+    #[test]
+    fn normalize_slug_allows_letters_numbers_hyphen_and_underscore() {
+        let slug = normalize_slug("math_runner-2026".to_string()).unwrap();
+        assert_eq!(slug, "math_runner-2026");
     }
 
     #[test]
