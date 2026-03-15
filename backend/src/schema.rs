@@ -7,6 +7,7 @@ diesel::table! {
     questions (id) {
         id -> Uuid,
         slug -> Varchar,
+        name -> Varchar,
         payload -> Jsonb,
         created_at -> Timestamp,
     }

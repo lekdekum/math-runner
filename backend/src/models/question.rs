@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 use diesel::{Insertable, Queryable, Selectable};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
@@ -11,6 +11,7 @@ use crate::schema::questions;
 pub struct Question {
     pub id: Uuid,
     pub slug: String,
+    pub name: String,
     pub payload: Value,
     pub created_at: NaiveDateTime,
 }
@@ -20,6 +21,7 @@ pub struct Question {
 pub struct NewQuestion {
     pub id: Uuid,
     pub slug: String,
+    pub name: String,
     pub payload: Value,
     pub created_at: NaiveDateTime,
 }
@@ -28,6 +30,7 @@ pub struct NewQuestion {
 pub struct QuestionResponse {
     pub id: Uuid,
     pub slug: String,
+    pub name: String,
     pub payload: Value,
     pub created_at: NaiveDateTime,
 }
@@ -44,8 +47,21 @@ pub struct CsvQuestionsResponse {
 }
 
 #[derive(Debug, Serialize, PartialEq)]
+pub struct QuestionSummary {
+    pub slug: String,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
 pub struct QuestionListResponse {
+    pub questions: Vec<QuestionSummary>,
     pub slugs: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateQuestionPayload {
+    pub name: Option<String>,
+    pub payload: Value,
 }
 
 impl From<Question> for QuestionResponse {
@@ -53,6 +69,7 @@ impl From<Question> for QuestionResponse {
         Self {
             id: value.id,
             slug: value.slug,
+            name: value.name,
             payload: value.payload,
             created_at: value.created_at,
         }

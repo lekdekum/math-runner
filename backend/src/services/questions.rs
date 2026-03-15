@@ -32,9 +32,11 @@ impl QuestionService {
     pub async fn create_question(
         &self,
         question_slug: String,
+        question_name: Option<String>,
         payload: Value,
     ) -> Result<QuestionResponse, AppError> {
         let slug = normalize_slug(question_slug)?;
+        let name = question_name.unwrap_or_else(|| slug.clone());
         let pool = self.pool.clone();
 
         task::spawn_blocking(move || {
@@ -50,7 +52,7 @@ impl QuestionService {
                 )));
             }
 
-            let question = repository.insert(&mut connection, &slug, payload)?;
+            let question = repository.insert(&mut connection, &slug, &name, payload)?;
             Ok(question.into())
         })
         .await
@@ -82,6 +84,7 @@ impl QuestionService {
     pub async fn import_questions_csv(
         &self,
         question_slug: String,
+        question_name: Option<String>,
         bytes: Vec<u8>,
     ) -> Result<QuestionResponse, AppError> {
         let slug = normalize_slug(question_slug)?;
@@ -94,7 +97,7 @@ impl QuestionService {
         .await
         .map_err(|error| AppError::Internal(format!("blocking task failed: {error}")))??;
 
-        self.create_question(slug, payload).await
+        self.create_question(slug, question_name, payload).await
     }
 
     pub async fn list_questions(&self) -> Result<QuestionListResponse, AppError> {
@@ -106,9 +109,10 @@ impl QuestionService {
             })?;
 
             let repository = QuestionRepository::new();
-            let slugs = repository.list_slugs(&mut connection)?;
+            let questions = repository.list_summaries(&mut connection)?;
+            let slugs = questions.iter().map(|question| question.slug.clone()).collect();
 
-            Ok(QuestionListResponse { slugs })
+            Ok(QuestionListResponse { questions, slugs })
         })
         .await
         .map_err(|error| AppError::Internal(format!("blocking task failed: {error}")))?
