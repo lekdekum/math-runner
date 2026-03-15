@@ -24,6 +24,7 @@ pub struct AuthConfig {
 impl Config {
     pub fn from_env() -> Result<Self, AppError> {
         dotenvy::dotenv().ok();
+        dotenvy::from_filename_override(".env.local").ok();
 
         let host = env::var("APP_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
         let port = env::var("APP_PORT")

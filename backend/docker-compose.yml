@@ -21,7 +21,7 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env.example
+      - .env.local
     container_name: math-runner-backend
     environment:
       APP_HOST: 0.0.0.0
