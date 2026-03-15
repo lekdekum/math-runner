@@ -150,6 +150,17 @@ p {
   cursor: pointer;
 }
 
+.button-secondary {
+  padding: 0.9rem 1.1rem;
+  border: 1px solid rgba(244, 241, 234, 0.18);
+  border-radius: 999px;
+  background: rgba(9, 17, 29, 0.78);
+  color: #f4f1ea;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .button-primary:disabled {
   opacity: 0.7;
   cursor: wait;
@@ -177,6 +188,17 @@ p {
   margin-bottom: 1.5rem;
 }
 
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon-button-eye {
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .slug-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -186,7 +208,8 @@ p {
 }
 
 .slug-card {
-  display: block;
+  display: grid;
+  gap: 0.75rem;
   padding: 1.2rem;
   border: 1px solid rgba(244, 241, 234, 0.14);
   border-radius: 18px;
@@ -200,11 +223,40 @@ p {
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
 }
 
+.slug-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.slug-card-link {
+  display: block;
+}
+
 .slug-card h2 {
   margin: 0;
   color: #f4f1ea;
   font-size: 1.25rem;
   overflow-wrap: anywhere;
+}
+
+.slug-card-code-label {
+  color: #d4deea;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+
+.slug-card-name {
+  margin: 0;
+  color: #f4f1ea;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.slug-toggle-button {
+  min-width: 2.75rem;
+  padding-inline: 0.85rem;
 }
 
 .rankings-table-wrapper {

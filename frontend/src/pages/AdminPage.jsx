@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { authFetch, clearAdminToken, isAuthError } from "../auth";
 
 function getErrorMessage(error) {
   return error instanceof Error ? error.message : "Upload failed";
 }
 
 export default function AdminPage() {
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [file, setFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,6 +31,7 @@ export default function AdminPage() {
     }
 
     const formData = new FormData();
+    formData.append("name", name.trim() || slug.trim());
     formData.append("file", file);
 
     setIsSubmitting(true);
@@ -35,7 +39,7 @@ export default function AdminPage() {
     setStatusMessage("");
 
     try {
-      const response = await fetch(`/questions_csv/${encodeURIComponent(slug.trim())}`, {
+      const response = await authFetch(`/questions_csv/${encodeURIComponent(slug.trim())}`, {
         method: "POST",
         body: formData
       });
@@ -46,10 +50,19 @@ export default function AdminPage() {
       }
 
       setStatusType("success");
-      setStatusMessage(`Uploaded ${file.name} to slug "${slug.trim()}".`);
+      setStatusMessage(
+        `Uploaded ${file.name} as "${name.trim() || slug.trim()}" to slug "${slug.trim()}".`
+      );
+      setName("");
+      setSlug("");
       setFile(null);
       event.target.reset();
     } catch (error) {
+      if (isAuthError(error)) {
+        navigate("/admin/login", { replace: true });
+        return;
+      }
+
       setStatusType("error");
       setStatusMessage(getErrorMessage(error));
     } finally {
@@ -62,8 +75,19 @@ export default function AdminPage() {
       <section className="card wide">
         <p className="eyebrow">Admin</p>
         <h1>Upload question CSV</h1>
-        <p>Send a CSV file to the backend and bind it to a slug.</p>
+        <p>Send a CSV file to the backend and bind it to a questionnaire name and slug.</p>
         <form className="admin-form" onSubmit={handleSubmit}>
+          <label className="field">
+            <span>Name</span>
+            <input
+              type="text"
+              name="name"
+              placeholder="Math Basics"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </label>
+
           <label className="field">
             <span>Slug</span>
             <input
@@ -98,6 +122,16 @@ export default function AdminPage() {
 
         <div className="link-row">
           <Link to="/admin">Back to admin</Link>
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={() => {
+              clearAdminToken();
+              navigate("/admin/login", { replace: true });
+            }}
+          >
+            Sign out
+          </button>
           <Link to="/">Open game</Link>
         </div>
       </section>
