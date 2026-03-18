@@ -40,6 +40,12 @@ pub struct ScoreResponse {
     pub created_at: NaiveDateTime,
 }
 
+#[derive(Debug, Serialize)]
+pub struct RankingResponse {
+    pub slug: String,
+    pub scores: Vec<ScoreResponse>,
+}
+
 impl From<Score> for ScoreResponse {
     fn from(value: Score) -> Self {
         Self {

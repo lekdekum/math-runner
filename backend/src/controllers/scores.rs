@@ -8,7 +8,7 @@ use tracing::info;
 use crate::{
     app::AppState,
     errors::AppError,
-    models::score::{CreateScoreRequest, ScoreResponse},
+    models::score::{CreateScoreRequest, RankingResponse, ScoreResponse},
 };
 
 pub async fn submit_score(
@@ -23,4 +23,14 @@ pub async fn submit_score(
         .await?;
 
     Ok((StatusCode::CREATED, Json(score)))
+}
+
+pub async fn get_rankings(
+    State(state): State<AppState>,
+    Path(question_slug): Path<String>,
+) -> Result<Json<RankingResponse>, AppError> {
+    info!("GET /rankings/{question_slug} called");
+    let rankings = state.score_service.get_rankings(question_slug).await?;
+
+    Ok(Json(rankings))
 }

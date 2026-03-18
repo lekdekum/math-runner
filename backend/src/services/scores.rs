@@ -2,7 +2,7 @@ use tokio::task;
 
 use crate::{
     errors::AppError,
-    models::score::{CreateScoreRequest, ScoreResponse},
+    models::score::{CreateScoreRequest, RankingResponse, ScoreResponse},
     repositories::{questions::QuestionRepository, scores::ScoreRepository},
     services::questions::QuestionService,
 };
@@ -40,9 +40,38 @@ impl ScoreService {
                 })?;
 
             let score_repository = ScoreRepository::new();
-            let score = score_repository.insert(&mut connection, &name, score, &slug)?;
+            let score = score_repository.save_best(&mut connection, &name, score, &slug)?;
 
             Ok(score.into())
+        })
+        .await
+        .map_err(|error| AppError::Internal(format!("blocking task failed: {error}")))?
+    }
+
+    pub async fn get_rankings(&self, question_slug: String) -> Result<RankingResponse, AppError> {
+        let slug = self.question_service.normalize_slug(question_slug)?;
+        let pool = self.question_service.pool().clone();
+
+        task::spawn_blocking(move || {
+            let mut connection = pool.get().map_err(|error| {
+                AppError::Internal(format!("failed to get database connection: {error}"))
+            })?;
+
+            let question_repository = QuestionRepository::new();
+            question_repository
+                .find_by_slug(&mut connection, &slug)?
+                .ok_or_else(|| {
+                    AppError::NotFound(format!("question slug '{slug}' was not found"))
+                })?;
+
+            let score_repository = ScoreRepository::new();
+            let scores = score_repository
+                .list_by_slug(&mut connection, &slug)?
+                .into_iter()
+                .map(ScoreResponse::from)
+                .collect();
+
+            Ok(RankingResponse { slug, scores })
         })
         .await
         .map_err(|error| AppError::Internal(format!("blocking task failed: {error}")))?
