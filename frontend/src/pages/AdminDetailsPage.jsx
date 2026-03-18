@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { authFetch, clearAdminToken, isAuthError } from "../auth";
 
 function normalizeScores(payload) {
   if (Array.isArray(payload?.scores)) {
@@ -50,6 +51,7 @@ function formatCreatedAt(value) {
 }
 
 export default function AdminDetailsPage() {
+  const navigate = useNavigate();
   const { slug = "" } = useParams();
   const [payload, setPayload] = useState(null);
   const [scores, setScores] = useState([]);
@@ -80,10 +82,10 @@ export default function AdminDetailsPage() {
         setIsNotFound(false);
 
         const [questionResponse, rankingsResponse] = await Promise.all([
-          fetch(`/questions/${encodeURIComponent(normalizedSlug)}`, {
+          authFetch(`/questions/${encodeURIComponent(normalizedSlug)}`, {
             signal: controller.signal
           }),
-          fetch(`/rankings/${encodeURIComponent(normalizedSlug)}`, {
+          authFetch(`/rankings/${encodeURIComponent(normalizedSlug)}`, {
             signal: controller.signal
           })
         ]);
@@ -109,6 +111,11 @@ export default function AdminDetailsPage() {
           return;
         }
 
+        if (isAuthError(error)) {
+          navigate("/admin/login", { replace: true });
+          return;
+        }
+
         setPayload(null);
         setScores([]);
         setIsNotFound(false);
@@ -121,7 +128,7 @@ export default function AdminDetailsPage() {
     return () => {
       controller.abort();
     };
-  }, [slug]);
+  }, [navigate, slug]);
 
   const questions = normalizeQuestions(payload);
 
@@ -212,6 +219,16 @@ export default function AdminDetailsPage() {
         <div className="link-row">
           <Link to="/admin">Back to admin</Link>
           <Link to="/admin/new">Add new slug</Link>
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={() => {
+              clearAdminToken();
+              navigate("/admin/login", { replace: true });
+            }}
+          >
+            Sign out
+          </button>
         </div>
       </section>
     </main>

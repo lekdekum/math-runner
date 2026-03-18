@@ -1,6 +1,8 @@
 import { Link, Route, Routes } from "react-router-dom";
+import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import AdminDetailsPage from "./pages/AdminDetailsPage";
 import AdminListPage from "./pages/AdminListPage";
+import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminPage from "./pages/AdminPage";
 import GamePage from "./pages/GamePage";
 import HomePage from "./pages/HomePage";
@@ -11,9 +13,12 @@ export default function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/game" element={<HomePage />} />
       <Route path="/game/:slug" element={<GamePage />} />
-      <Route path="/admin" element={<AdminListPage />} />
-      <Route path="/admin/new" element={<AdminPage />} />
-      <Route path="/admin/details/:slug" element={<AdminDetailsPage />} />
+      <Route path="/admin/login" element={<AdminLoginPage />} />
+      <Route element={<AdminProtectedRoute />}>
+        <Route path="/admin" element={<AdminListPage />} />
+        <Route path="/admin/new" element={<AdminPage />} />
+        <Route path="/admin/details/:slug" element={<AdminDetailsPage />} />
+      </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

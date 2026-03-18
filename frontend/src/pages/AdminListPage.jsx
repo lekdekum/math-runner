@@ -115,18 +115,34 @@ export default function AdminListPage() {
         ) : questions.length > 0 ? (
           <div className="slug-grid">
             {questions.map(({ slug, name }) => (
-              <article key={slug} className="slug-card">
+              <article
+                key={slug}
+                className="slug-card"
+                role="link"
+                tabIndex={0}
+                onClick={() => navigate(`/admin/details/${encodeURIComponent(slug)}`)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    navigate(`/admin/details/${encodeURIComponent(slug)}`);
+                  }
+                }}
+              >
                 <div className="slug-card-header">
                   <p className="slug-card-name">{name}</p>
                   <button
                     type="button"
                     className="button-secondary icon-button slug-toggle-button"
-                    onClick={() =>
+                    onClick={(event) => {
+                      event.stopPropagation();
                       setRevealedSlugs((currentValue) => ({
                         ...currentValue,
                         [slug]: !currentValue[slug]
-                      }))
-                    }
+                      }));
+                    }}
+                    onKeyDown={(event) => {
+                      event.stopPropagation();
+                    }}
                     aria-pressed={Boolean(revealedSlugs[slug])}
                     aria-label={revealedSlugs[slug] ? `Hide slug for ${name}` : `Show slug for ${name}`}
                   >
@@ -135,12 +151,12 @@ export default function AdminListPage() {
                     </span>
                   </button>
                 </div>
-                <Link to={`/admin/details/${encodeURIComponent(slug)}`} className="slug-card-link">
+                <div className="slug-card-link">
                   <h2>
                     <span className="slug-card-code-label">CODE:</span>{" "}
                     {revealedSlugs[slug] ? slug : "*".repeat(Math.max(slug.length, 8))}
                   </h2>
-                </Link>
+                </div>
               </article>
             ))}
           </div>

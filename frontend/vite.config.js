@@ -25,6 +25,10 @@ export default defineConfig({
       "/rankings": {
         target: "http://localhost:7878",
         changeOrigin: true
+      },
+      "/login": {
+        target: "http://localhost:7878",
+        changeOrigin: true
       }
     }
   }
