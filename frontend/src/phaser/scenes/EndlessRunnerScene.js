@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { buildApiUrl } from "../../auth";
 
 const GAME_WIDTH = 800;
 const GAME_HEIGHT = 640;
@@ -7,8 +8,11 @@ const PLAYER_Y = GAME_HEIGHT - 84;
 const PLAYER_RADIUS = 22;
 const OBSTACLE_SIZE = { width: 70, height: 70 };
 const BASE_SPEED = 280;
-const GATE_SPEED = 60;
-const SPAWN_INTERVAL = 900;
+const MAX_GATE_SPEED = 200;
+const MIN_GATE_SPEED = 30;
+const SPAWN_INTERVAL_SLOW = 1300;
+const SPAWN_INTERVAL_MEDIUM = 900;
+const SPAWN_INTERVAL_FAST = 600;
 const FIRST_QUESTION_SCORE = 50;
 const QUESTION_INTERVAL = 100;
 const LANE_CHANGE_DURATION = 130;
@@ -16,6 +20,11 @@ const SCORE_RATE = 10;
 const GATE_WIDTH = 150;
 const GATE_HEIGHT = 120;
 const GATE_START_Y = -120;
+const OBJECT_SCORE_RAMPUP = 200;
+const OBJECT_SCORE_FULL_SINGLE = 600;
+const OBJECT_SCORE_DOUBLE_EASY = 900;
+const OBJECT_CHANCE_EASY = 0.2;
+const OBJECT_CHANCE_HARD = 0.4;
 
 export default class EndlessRunnerScene extends Phaser.Scene {
   constructor(questionBank, slug, playerName) {
@@ -82,9 +91,32 @@ export default class EndlessRunnerScene extends Phaser.Scene {
       this.moveObstacles(deltaSeconds);
       this.spawnTimer += delta;
 
-      if (this.spawnTimer >= SPAWN_INTERVAL) {
-        this.spawnObstacle();
-        this.spawnTimer = 0;
+      if (this.score <= OBJECT_SCORE_RAMPUP){
+        if(this.spawnTimer >= SPAWN_INTERVAL_SLOW){
+          this.spawnObstacle();
+        }
+      }else if (this.score<=OBJECT_SCORE_FULL_SINGLE){
+        if(this.spawnTimer >= SPAWN_INTERVAL_MEDIUM){
+          this.spawnObstacle();
+        }
+      }else if(this.score<=OBJECT_SCORE_DOUBLE_EASY){
+        if(this.spawnTimer >= SPAWN_INTERVAL_SLOW){
+          const aux = Math.random();
+          if(aux<OBJECT_CHANCE_EASY){
+            this.spawnObstacleDouble();
+          }else{
+            this.spawnObstacle();
+          }
+        }
+      }else{
+        if(this.spawnTimer >= SPAWN_INTERVAL_SLOW){
+          const aux = Math.random();
+          if(aux<OBJECT_CHANCE_HARD){
+            this.spawnObstacleDouble();
+          }else{
+            this.spawnObstacle();
+          }
+        }
       }
 
       if (this.score >= this.nextQuestionScore) {
@@ -321,33 +353,9 @@ export default class EndlessRunnerScene extends Phaser.Scene {
 
   spawnObstacle() {
     const laneIndex = Phaser.Math.Between(0, LANE_COUNT - 1);
-    const obstacleY = -40;
-
-    const nearestInLane = this.obstacles
-      .getChildren()
-      .filter((obstacle) => obstacle.getData("laneIndex") === laneIndex)
-      .sort((first, second) => first.y - second.y)[0];
-
-    if (nearestInLane && nearestInLane.y < 140) {
-      return;
+    if (this.spawnObstacleAtLane(laneIndex)) {
+      this.spawnTimer = 0;
     }
-
-    const obstacle = this.add.rectangle(
-      this.lanePositions[laneIndex],
-      obstacleY,
-      OBSTACLE_SIZE.width,
-      OBSTACLE_SIZE.height,
-      0xcf5a43
-    );
-    obstacle.setStrokeStyle(4, 0x7d231d, 1);
-
-    this.physics.add.existing(obstacle, false);
-    obstacle.body.setAllowGravity(false);
-    obstacle.body.setImmovable(true);
-    obstacle.body.setSize(OBSTACLE_SIZE.width, OBSTACLE_SIZE.height);
-    obstacle.setData("laneIndex", laneIndex);
-
-    this.obstacles.add(obstacle);
   }
 
   moveObstacles(deltaSeconds) {
@@ -361,9 +369,28 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     });
   }
 
+  spawnObstacleDouble() {
+    const emptyLaneIndex = Phaser.Math.Between(0, LANE_COUNT - 1);
+    const occupiedLaneIndexes = Phaser.Utils.Array.NumberArray(0, LANE_COUNT - 1).filter(
+      (laneIndex) => laneIndex !== emptyLaneIndex
+    );
+
+    if (!occupiedLaneIndexes.every((laneIndex) => this.canSpawnObstacleInLane(laneIndex))) {
+      return;
+    }
+
+    occupiedLaneIndexes.forEach((laneIndex) => {
+      this.spawnObstacleAtLane(laneIndex);
+    });
+    this.spawnTimer = 0;
+  }
+
   moveGates(deltaSeconds) {
+
+    const gateSpeed = this.calcGateSpeed();
+    console.log(gateSpeed);
     this.gates.getChildren().forEach((gate) => {
-      gate.y += GATE_SPEED * deltaSeconds;
+      gate.y += gateSpeed * deltaSeconds;
       gate.body.updateFromGameObject();
 
       const label = gate.getData("label");
@@ -510,6 +537,50 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     return question;
   }
 
+  calcGateSpeed(){
+    const terminal_score = 2000;
+    const k = -Math.log(0.01)/terminal_score; //99% of MAX_GATE_SPEED when gets to terminal_score
+
+    if (this.score < terminal_score){
+      return MIN_GATE_SPEED + (MAX_GATE_SPEED - MIN_GATE_SPEED)*(1-Math.exp(-this.score*k));
+    }
+    return MAX_GATE_SPEED*this.score/terminal_score;
+    
+  }
+
+  canSpawnObstacleInLane(laneIndex) {
+    const nearestInLane = this.obstacles
+      .getChildren()
+      .filter((obstacle) => obstacle.getData("laneIndex") === laneIndex)
+      .sort((first, second) => first.y - second.y)[0];
+
+    return !nearestInLane || nearestInLane.y >= 140;
+  }
+
+  spawnObstacleAtLane(laneIndex) {
+    if (!this.canSpawnObstacleInLane(laneIndex)) {
+      return false;
+    }
+
+    const obstacle = this.add.rectangle(
+      this.lanePositions[laneIndex],
+      -40,
+      OBSTACLE_SIZE.width,
+      OBSTACLE_SIZE.height,
+      0xcf5a43
+    );
+    obstacle.setStrokeStyle(4, 0x7d231d, 1);
+
+    this.physics.add.existing(obstacle, false);
+    obstacle.body.setAllowGravity(false);
+    obstacle.body.setImmovable(true);
+    obstacle.body.setSize(OBSTACLE_SIZE.width, OBSTACLE_SIZE.height);
+    obstacle.setData("laneIndex", laneIndex);
+
+    this.obstacles.add(obstacle);
+    return true;
+  }
+
   async submitScore() {
     if (this.hasSubmittedScore || !this.slug || !this.playerName) {
       return;
@@ -518,7 +589,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     this.hasSubmittedScore = true;
 
     try {
-      await fetch(`/submit-score/${encodeURIComponent(this.slug)}`, {
+      await fetch(buildApiUrl(`/submit-score/${encodeURIComponent(this.slug)}`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

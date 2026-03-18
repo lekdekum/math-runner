@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { isAuthenticated, setAdminToken } from "../auth";
+import { buildApiUrl, isAuthenticated, setAdminToken } from "../auth";
 
 function getErrorMessage(error) {
   return error instanceof Error ? error.message : "Login failed";
@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
     setErrorMessage("");
 
     try {
-      const response = await fetch("/login", {
+      const response = await fetch(buildApiUrl("/login"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

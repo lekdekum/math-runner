@@ -27,6 +27,19 @@ export function isAuthError(error) {
   return error instanceof AuthError;
 }
 
+export function getApiBaseUrl() {
+  return (import.meta.env.VITE_API_BASE_URL || "http://localhost:7878").replace(/\/$/, "");
+}
+
+export function buildApiUrl(path) {
+  if (/^https?:\/\//.test(path)) {
+    return path;
+  }
+
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${getApiBaseUrl()}${normalizedPath}`;
+}
+
 export async function authFetch(input, init = {}) {
   const token = getAdminToken();
   const headers = new Headers(init.headers || {});
@@ -35,7 +48,7 @@ export async function authFetch(input, init = {}) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(input, {
+  const response = await fetch(buildApiUrl(input), {
     ...init,
     headers
   });

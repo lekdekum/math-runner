@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { buildApiUrl } from "../auth";
 import PhaserCanvas from "../phaser/PhaserCanvas";
 
 const PLAYER_NAME_STORAGE_KEY = "math-runner-player-name";
@@ -43,7 +44,7 @@ export default function GamePage() {
     }
 
     const controller = new AbortController();
-    const questionsUrl = `/questions/${encodeURIComponent(normalizedSlug)}`;
+    const questionsUrl = buildApiUrl(`/questions/${encodeURIComponent(normalizedSlug)}`);
 
     async function loadQuestions() {
       try {
