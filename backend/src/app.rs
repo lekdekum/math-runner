@@ -48,12 +48,26 @@ pub fn build_router(pool: DbPool, config: &Config) -> Result<Router, crate::erro
             admin_auth_middleware,
         ));
 
+    let explicit_origins = config
+        .cors_allowed_origins
+        .iter()
+        .filter_map(|origin| HeaderValue::from_str(origin).ok())
+        .collect::<Vec<_>>();
     let cors = CorsLayer::new()
-        .allow_origin([
-            HeaderValue::from_static("https://math-runner.vercel.app"),
-            HeaderValue::from_static("http://localhost:5173"),
-            HeaderValue::from_static("http://127.0.0.1:5173"),
-        ])
+        .allow_origin(tower_http::cors::AllowOrigin::predicate(move |origin, _request_parts| {
+            if explicit_origins.iter().any(|allowed| allowed == origin) {
+                return true;
+            }
+
+            match origin.to_str() {
+                Ok("http://localhost:5173") | Ok("http://127.0.0.1:5173") => true,
+                Ok(origin_value) => {
+                    origin_value.starts_with("https://")
+                        && origin_value.ends_with(".vercel.app")
+                }
+                Err(_) => false,
+            }
+        }))
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
         .allow_headers([AUTHORIZATION, CONTENT_TYPE]);
 

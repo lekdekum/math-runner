@@ -7,6 +7,7 @@ pub struct Config {
     pub host: String,
     pub port: u16,
     pub database_url: String,
+    pub cors_allowed_origins: Vec<String>,
     pub auth: AuthConfig,
 }
 
@@ -32,12 +33,23 @@ impl Config {
             .parse::<u16>()
             .map_err(ConfigError::InvalidPort)?;
         let database_url = env::var("DATABASE_URL").map_err(|_| ConfigError::MissingDatabaseUrl)?;
+        let cors_allowed_origins = env::var("CORS_ALLOWED_ORIGINS")
+            .map(|value| {
+                value
+                    .split(',')
+                    .map(str::trim)
+                    .filter(|origin| !origin.is_empty())
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
         let auth = AuthConfig::from_env()?;
 
         Ok(Self {
             host,
             port,
             database_url,
+            cors_allowed_origins,
             auth,
         })
     }
