@@ -7,10 +7,14 @@ use crate::{
     services::{questions::QuestionService, scores::ScoreService},
 };
 use axum::{
+    http::{
+        HeaderValue, Method,
+        header::{AUTHORIZATION, CONTENT_TYPE},
+    },
     Router, middleware,
     routing::{get, post},
 };
-use tower_http::trace::TraceLayer;
+use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -44,6 +48,15 @@ pub fn build_router(pool: DbPool, config: &Config) -> Result<Router, crate::erro
             admin_auth_middleware,
         ));
 
+    let cors = CorsLayer::new()
+        .allow_origin([
+            HeaderValue::from_static("https://math-runner.vercel.app"),
+            HeaderValue::from_static("http://localhost:5173"),
+            HeaderValue::from_static("http://127.0.0.1:5173"),
+        ])
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE]);
+
     Ok(Router::new()
         .route("/login", post(auth_controller::login))
         .route("/submit-score/{question_slug}", post(scores::submit_score))
@@ -52,5 +65,6 @@ pub fn build_router(pool: DbPool, config: &Config) -> Result<Router, crate::erro
         .route("/health", get(questions::health_check))
         .merge(protected_routes)
         .with_state(state)
+        .layer(cors)
         .layer(TraceLayer::new_for_http()))
 }
