@@ -4,15 +4,28 @@ import { buildApiUrl } from "../../auth";
 const GAME_WIDTH = 800;
 const GAME_HEIGHT = 640;
 const LANE_COUNT = 3;
+const COLOR_DARK_BLUE = 0x13243a;
+const COLOR_PANEL_BLUE = 0x09111d;
+const COLOR_TRACK_BLUE = 0x10263b;
+const COLOR_DETAIL_BLUE = 0x315b82;
+const COLOR_LIGHT_BLUE = 0xc8d8ea;
+const COLOR_OFF_WHITE = 0xf4f1ea;
+const COLOR_YELLOW = 0xf0b35d;
+const COLOR_YELLOW_LIGHT = 0xf7d29b;
+const COLOR_OBSTACLE = 0xcf5a43;
+const COLOR_OBSTACLE_BORDER = 0x7d231d;
+const COLOR_BLACK = 0x000000;
+const COLOR_GATE_BLUE = 0x295f88;
 const PLAYER_Y = GAME_HEIGHT - 84;
 const PLAYER_RADIUS = 22;
-const OBSTACLE_SIZE = { width: 70, height: 70 };
+const OBSTACLE_SIZE = { height: 70 };
+const OBSTACLE_LANE_WIDTH_RATIO = 0.8;
 const BASE_SPEED = 280;
 const MAX_GATE_SPEED = 200;
 const MIN_GATE_SPEED = 30;
 const SPAWN_INTERVAL_SLOW = 1300;
 const SPAWN_INTERVAL_MEDIUM = 900;
-const SPAWN_INTERVAL_FAST = 600;
+const SPAWN_INTERVAL_FAST = 750;
 const FIRST_QUESTION_SCORE = 50;
 const QUESTION_INTERVAL = 100;
 const LANE_CHANGE_DURATION = 130;
@@ -24,7 +37,11 @@ const OBJECT_SCORE_RAMPUP = 200;
 const OBJECT_SCORE_FULL_SINGLE = 600;
 const OBJECT_SCORE_DOUBLE_EASY = 900;
 const OBJECT_CHANCE_EASY = 0.2;
-const OBJECT_CHANCE_HARD = 0.4;
+const OBJECT_CHANCE_HARD_BASE = 0.4;
+const OBJECT_CHANCE_HARD_STEP = 0.1;
+const OBJECT_CHANCE_HARD_SCORE_STEP = 100;
+const QUICK_MESSAGE_HOLD_MS = 700;
+const QUICK_MESSAGE_FADE_MS = 250;
 
 export default class EndlessRunnerScene extends Phaser.Scene {
   constructor(questionBank, slug, playerName) {
@@ -36,6 +53,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     this.gates = null;
     this.player = null;
     this.playerVisual = null;
+    this.scoreBackdrop = null;
     this.scoreText = null;
     this.messageText = null;
     this.questionText = null;
@@ -58,7 +76,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
   }
 
   create() {
-    this.cameras.main.setBackgroundColor("#13243a");
+    this.cameras.main.setBackgroundColor(COLOR_DARK_BLUE);
     this.lanePositions = this.getLanePositions();
 
     this.createTrack();
@@ -100,7 +118,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
           this.spawnObstacle();
         }
       }else if(this.score<=OBJECT_SCORE_DOUBLE_EASY){
-        if(this.spawnTimer >= SPAWN_INTERVAL_SLOW){
+        if(this.spawnTimer >= SPAWN_INTERVAL_MEDIUM){
           const aux = Math.random();
           if(aux<OBJECT_CHANCE_EASY){
             this.spawnObstacleDouble();
@@ -109,9 +127,9 @@ export default class EndlessRunnerScene extends Phaser.Scene {
           }
         }
       }else{
-        if(this.spawnTimer >= SPAWN_INTERVAL_SLOW){
+        if(this.spawnTimer >= SPAWN_INTERVAL_FAST){
           const aux = Math.random();
-          if(aux<OBJECT_CHANCE_HARD){
+          if(aux<this.getHardPhaseDoubleChance()){
             this.spawnObstacleDouble();
           }else{
             this.spawnObstacle();
@@ -125,6 +143,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     }
 
     if (this.gameMode === "question") {
+      this.moveObstacles(deltaSeconds);
       this.moveGates(deltaSeconds);
     }
   }
@@ -135,9 +154,9 @@ export default class EndlessRunnerScene extends Phaser.Scene {
       GAME_HEIGHT / 2,
       GAME_WIDTH - 80,
       GAME_HEIGHT - 40,
-      0x10263b
+      COLOR_TRACK_BLUE
     );
-    this.trackBackground.setStrokeStyle(4, 0x294e73, 0.9);
+    this.trackBackground.setStrokeStyle(4, COLOR_DETAIL_BLUE, 0.9);
 
     const laneWidth = (GAME_WIDTH - 160) / LANE_COUNT;
     const top = 30;
@@ -145,7 +164,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
 
     for (let index = 0; index < LANE_COUNT + 1; index += 1) {
       const x = 80 + laneWidth * index;
-      const divider = this.add.rectangle(x, GAME_HEIGHT / 2, 4, height, 0x315b82, 0.8);
+      const divider = this.add.rectangle(x, GAME_HEIGHT / 2, 4, height, COLOR_DETAIL_BLUE, 0.8);
       this.trackLines.push(divider);
     }
 
@@ -155,7 +174,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
 
   drawTrackDashes(top, height) {
     this.dashGraphics.clear();
-    this.dashGraphics.fillStyle(0xf0b35d, 0.9);
+    this.dashGraphics.fillStyle(COLOR_TRACK_BLUE, 0.9);
 
     const laneWidth = (GAME_WIDTH - 160) / LANE_COUNT;
     const dividerXs = [80 + laneWidth, 80 + laneWidth * 2];
@@ -172,9 +191,9 @@ export default class EndlessRunnerScene extends Phaser.Scene {
       this.lanePositions[this.currentLane],
       PLAYER_Y,
       PLAYER_RADIUS,
-      0xf4f1ea
+      COLOR_OFF_WHITE
     );
-    this.playerVisual.setStrokeStyle(5, 0xf0b35d, 1);
+    this.playerVisual.setStrokeStyle(5, COLOR_YELLOW, 1);
 
     this.player = this.physics.add.existing(this.playerVisual, false);
     this.player.body.setCircle(PLAYER_RADIUS);
@@ -201,8 +220,15 @@ export default class EndlessRunnerScene extends Phaser.Scene {
   }
 
   createHud() {
-    this.scoreText = this.add.text(28, 22, "SCORE: 0", {
-      color: "#f4f1ea",
+    this.scoreBackdrop = this.add.graphics();
+    this.scoreBackdrop.setDepth(18);
+    this.scoreBackdrop.fillStyle(COLOR_PANEL_BLUE, 0.88);
+    this.scoreBackdrop.lineStyle(3, COLOR_DETAIL_BLUE, 0.95);
+    this.scoreBackdrop.fillRoundedRect(3, GAME_HEIGHT - 50, 176, 48, 14);
+    this.scoreBackdrop.strokeRoundedRect(3, GAME_HEIGHT - 50, 176, 48, 14);
+
+    this.scoreText = this.add.text(16, GAME_HEIGHT - 35, "SCORE: 0", {
+      color: Phaser.Display.Color.IntegerToColor(COLOR_OFF_WHITE).rgba,
       fontFamily: '"Minecraft", "Trebuchet MS", sans-serif',
       fontSize: "24px"
     });
@@ -210,39 +236,39 @@ export default class EndlessRunnerScene extends Phaser.Scene {
 
     this.messageText = this.add.text(
       GAME_WIDTH / 2,
-      96,
+      74,
       "ARROW KEYS OR A/D TO SWITCH LANES",
       {
         align: "center",
-        color: "#d4deea",
+        color: Phaser.Display.Color.IntegerToColor(COLOR_LIGHT_BLUE).rgba,
         fontFamily: '"Minecraft", "Trebuchet MS", sans-serif',
         fontSize: "20px",
         wordWrap: { width: GAME_WIDTH - 180 }
       }
     );
     this.messageText.setDepth(20);
-    this.messageText.setOrigin(0.5, 0);
+    this.messageText.setOrigin(0.5);
 
     this.questionBackdrop = this.add.graphics();
     this.questionBackdrop.setDepth(18);
     this.questionBackdrop.setVisible(false);
     this.drawQuestionBackdrop();
 
-    this.questionText = this.add.text(GAME_WIDTH / 2, 142, "", {
+    this.questionText = this.add.text(GAME_WIDTH / 2, 74, "", {
       align: "center",
-      color: "#f0b35d",
+      color: Phaser.Display.Color.IntegerToColor(COLOR_YELLOW).rgba,
       fontFamily: '"Minecraft", "Trebuchet MS", sans-serif',
-      fontSize: "26px",
+      fontSize: "24px",
       wordWrap: { width: GAME_WIDTH - 180 }
     });
     this.questionText.setDepth(20);
-    this.questionText.setOrigin(0.5, 0);
+    this.questionText.setOrigin(0.5);
   }
 
   drawQuestionBackdrop() {
     this.questionBackdrop.clear();
-    this.questionBackdrop.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.28, 0.28);
-    this.questionBackdrop.fillRect(70, 122, GAME_WIDTH - 140, 92);
+    this.questionBackdrop.fillStyle(COLOR_BLACK, 0.42);
+    this.questionBackdrop.fillRect(90, 30, GAME_WIDTH - 180, 88);
   }
 
   createInput() {
@@ -258,32 +284,32 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     this.startOverlay = this.add.container(GAME_WIDTH / 2, GAME_HEIGHT / 2);
     this.startOverlay.setDepth(40);
 
-    const backdrop = this.add.rectangle(0, 0, 360, 220, 0x09111d, 0.92);
-    backdrop.setStrokeStyle(3, 0xf0b35d, 0.9);
+    const backdrop = this.add.rectangle(0, 0, 360, 220, COLOR_PANEL_BLUE, 0.92);
+    backdrop.setStrokeStyle(3, COLOR_YELLOW, 0.9);
 
     const title = this.add.text(0, -62, "Math Runner", {
-      color: "#f4f1ea",
+      color: Phaser.Display.Color.IntegerToColor(COLOR_OFF_WHITE).rgba,
       fontFamily: "Georgia, serif",
       fontSize: "34px"
     });
-    title.setShadow(0, 3, "#000000", 8, true, true);
+    title.setShadow(0, 3, Phaser.Display.Color.IntegerToColor(COLOR_BLACK).rgba, 8, true, true);
     title.setOrigin(0.5);
 
     this.startOverlayLabel = this.add.text(0, -12, "PRESS START TO BEGIN", {
       align: "center",
-      color: "#d4deea",
+      color: Phaser.Display.Color.IntegerToColor(COLOR_LIGHT_BLUE).rgba,
       fontFamily: '"Minecraft", "Trebuchet MS", sans-serif',
       fontSize: "20px"
     });
     this.startOverlayLabel.setOrigin(0.5);
 
-    this.startOverlayButton = this.add.rectangle(0, 58, 180, 54, 0xf0b35d, 1);
-    this.startOverlayButton.setStrokeStyle(2, 0xf7d29b, 1);
+    this.startOverlayButton = this.add.rectangle(0, 58, 180, 54, COLOR_YELLOW, 1);
+    this.startOverlayButton.setStrokeStyle(2, COLOR_YELLOW_LIGHT, 1);
     this.startOverlayButton.setInteractive({ useHandCursor: true });
     this.startOverlayButton.on("pointerdown", () => this.startRun());
 
     const buttonText = this.add.text(0, 58, "START RUN", {
-      color: "#09111d",
+      color: Phaser.Display.Color.IntegerToColor(COLOR_PANEL_BLUE).rgba,
       fontFamily: '"Minecraft", "Trebuchet MS", sans-serif',
       fontSize: "24px"
     });
@@ -302,7 +328,9 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     this.gameMode = "idle";
     this.nextQuestionScore = FIRST_QUESTION_SCORE;
     this.scoreText.setText("SCORE: 0");
-    this.messageText.setText("ARROW KEYS OR A/D TO SWITCH LANES");
+    this.showMessage("ARROW KEYS OR A/D TO SWITCH LANES", {
+      autoFade: true
+    });
     this.questionText.setText("");
     this.questionBackdrop.setVisible(false);
     this.playerVisual.setPosition(this.lanePositions[this.currentLane], PLAYER_Y);
@@ -416,13 +444,13 @@ export default class EndlessRunnerScene extends Phaser.Scene {
   }
 
   handleCollision() {
-    if (this.isGameOver) {
+    if (this.isGameOver || this.gameMode === "question") {
       return;
     }
 
     this.isGameOver = true;
     this.gameMode = "gameOver";
-    this.messageText.setText("GAME OVER\nPRESS SPACE OR ENTER TO RESTART");
+    this.showMessage("GAME OVER\nPRESS SPACE OR ENTER TO RESTART");
     this.questionText.setText("");
     this.questionBackdrop.setVisible(false);
     this.submitScore();
@@ -466,15 +494,20 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     return Array.from({ length: LANE_COUNT }, (_, index) => leftBound + laneWidth * (index + 0.5));
   }
 
+  getObstacleWidth() {
+    return ((GAME_WIDTH - 160) / LANE_COUNT) * OBSTACLE_LANE_WIDTH_RATIO;
+  }
+
   startQuestionRound() {
     this.gameMode = "question";
     this.nextQuestionScore += QUESTION_INTERVAL;
     this.spawnTimer = 0;
-    this.obstacles.clear(true, true);
+    this.obstacles.getChildren().forEach((obstacle) => {
+      obstacle.setData("retiring", true);
+    });
     this.clearGates();
 
     const question = this.getNextQuestion();
-    this.messageText.setText("CHOOSE THE CORRECT ANSWER GATE");
     this.questionBackdrop.setVisible(true);
     this.questionText.setText(String(question.question).toUpperCase());
 
@@ -491,18 +524,18 @@ export default class EndlessRunnerScene extends Phaser.Scene {
         GATE_START_Y,
         GATE_WIDTH,
         GATE_HEIGHT,
-        0x295f88
+        COLOR_GATE_BLUE
       );
-      gate.setStrokeStyle(5, 0xc8d8ea, 1);
+      gate.setStrokeStyle(5, COLOR_LIGHT_BLUE, 1);
 
       const label = this.add.text(gate.x, gate.y, answer.label, {
         align: "center",
-        color: "#f4f1ea",
+        color: Phaser.Display.Color.IntegerToColor(COLOR_OFF_WHITE).rgba,
         fontFamily: '"Minecraft", "Trebuchet MS", sans-serif',
         fontSize: "28px"
       });
       label.setDepth(15);
-      label.setOrigin(0.5);
+      label.setOrigin(0.5, 0.5);
 
       this.physics.add.existing(gate, false);
       gate.body.setAllowGravity(false);
@@ -518,10 +551,32 @@ export default class EndlessRunnerScene extends Phaser.Scene {
 
   finishQuestionRound() {
     this.gameMode = "running";
-    this.messageText.setText("CORRECT! KEEP RUNNING");
+    this.showMessage("CORRECT! KEEP RUNNING", {
+      autoFade: true
+    });
     this.questionText.setText("");
     this.questionBackdrop.setVisible(false);
     this.clearGates();
+  }
+
+  showMessage(message, options = {}) {
+    const { autoFade = false } = options;
+
+    this.tweens.killTweensOf(this.messageText);
+    this.messageText.setAlpha(1);
+    this.messageText.setText(message);
+
+    if (!autoFade) {
+      return;
+    }
+
+    this.tweens.add({
+      targets: this.messageText,
+      alpha: 0,
+      delay: QUICK_MESSAGE_HOLD_MS,
+      duration: QUICK_MESSAGE_FADE_MS*2,
+      ease: "Quad.Out"
+    });
   }
 
   clearGates() {
@@ -548,6 +603,14 @@ export default class EndlessRunnerScene extends Phaser.Scene {
     
   }
 
+  getHardPhaseDoubleChance() {
+    const scoreOverThreshold = Math.max(0, this.score - OBJECT_SCORE_DOUBLE_EASY);
+    const scoreSteps = Math.floor(scoreOverThreshold / OBJECT_CHANCE_HARD_SCORE_STEP);
+    const chance = OBJECT_CHANCE_HARD_BASE + scoreSteps * OBJECT_CHANCE_HARD_STEP;
+
+    return Math.min(1, chance);
+  }
+
   canSpawnObstacleInLane(laneIndex) {
     const nearestInLane = this.obstacles
       .getChildren()
@@ -562,19 +625,21 @@ export default class EndlessRunnerScene extends Phaser.Scene {
       return false;
     }
 
+    const obstacleWidth = this.getObstacleWidth();
+
     const obstacle = this.add.rectangle(
       this.lanePositions[laneIndex],
       -40,
-      OBSTACLE_SIZE.width,
+      obstacleWidth,
       OBSTACLE_SIZE.height,
-      0xcf5a43
+      COLOR_OBSTACLE
     );
-    obstacle.setStrokeStyle(4, 0x7d231d, 1);
+    obstacle.setStrokeStyle(4, COLOR_OBSTACLE_BORDER, 1);
 
     this.physics.add.existing(obstacle, false);
     obstacle.body.setAllowGravity(false);
     obstacle.body.setImmovable(true);
-    obstacle.body.setSize(OBSTACLE_SIZE.width, OBSTACLE_SIZE.height);
+    obstacle.body.setSize(obstacleWidth, OBSTACLE_SIZE.height);
     obstacle.setData("laneIndex", laneIndex);
 
     this.obstacles.add(obstacle);

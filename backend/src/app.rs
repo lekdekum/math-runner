@@ -60,7 +60,10 @@ pub fn build_router(pool: DbPool, config: &Config) -> Result<Router, crate::erro
             }
 
             match origin.to_str() {
-                Ok("http://localhost:5173") | Ok("http://127.0.0.1:5173") => true,
+                Ok("http://localhost:5173")
+                | Ok("http://127.0.0.1:5173")
+                | Ok("http://localhost:8000")
+                | Ok("http://127.0.0.1:8000") => true,
                 Ok(origin_value) => {
                     origin_value.starts_with("https://")
                         && origin_value.ends_with(".vercel.app")
