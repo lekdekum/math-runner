@@ -448,6 +448,14 @@ export default class EndlessRunnerScene extends Phaser.Scene {
       return;
     }
 
+    this.triggerGameOver();
+  }
+
+  triggerGameOver() {
+    if (this.isGameOver) {
+      return;
+    }
+
     this.isGameOver = true;
     this.gameMode = "gameOver";
     this.showMessage("GAME OVER\nPRESS SPACE OR ENTER TO RESTART");
@@ -466,7 +474,7 @@ export default class EndlessRunnerScene extends Phaser.Scene {
       return;
     }
 
-    this.handleCollision();
+    this.triggerGameOver();
   }
 
   tryRestart() {
