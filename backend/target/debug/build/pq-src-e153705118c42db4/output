@@ -1,0 +1,6 @@
+cargo:rerun-if-changed=additional_include
+cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
+cargo:rustc-link-lib=static=pq
+cargo:rustc-link-search=native=/home/dukilee/math-runner/backend/target/debug/build/pq-src-e153705118c42db4/out
+cargo:include=/home/dukilee/math-runner/backend/target/debug/build/pq-src-e153705118c42db4/out/include
+cargo:lib_dir=/home/dukilee/math-runner/backend/target/debug/build/pq-src-e153705118c42db4/out

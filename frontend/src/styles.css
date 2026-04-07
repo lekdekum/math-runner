@@ -5,7 +5,7 @@
 }
 
 :root {
-  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  font-family: "Minecraft", "Trebuchet MS", "Segoe UI", sans-serif;
   color: #f4f1ea;
   background:
     radial-gradient(circle at top, rgba(224, 148, 74, 0.28), transparent 30%),
@@ -20,6 +20,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  font-family: inherit;
 }
 
 a {
@@ -75,7 +76,7 @@ a {
 
 h1 {
   margin: 0;
-  font-family: Georgia, serif;
+  font-family: "Minecraft", Georgia, serif;
   font-size: clamp(2rem, 4vw, 3.5rem);
 }
 
@@ -214,6 +215,7 @@ p {
   border: 1px solid rgba(244, 241, 234, 0.14);
   border-radius: 18px;
   background: rgba(19, 36, 58, 0.9);
+  cursor: pointer;
   transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
 
@@ -221,6 +223,11 @@ p {
   transform: translateY(-2px);
   border-color: rgba(240, 179, 93, 0.45);
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
+}
+
+.slug-card:focus-visible {
+  outline: 2px solid rgba(240, 179, 93, 0.85);
+  outline-offset: 3px;
 }
 
 .slug-card-header {
